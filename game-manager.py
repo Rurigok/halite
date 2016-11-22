@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import random
 import subprocess
-import sys
+import sys, os
 from collections import Counter
 
 players = dict()
@@ -44,7 +44,8 @@ def main():
     results = {}
     for i in range(runs):
         size = random.choice(sizes)
-        proc = subprocess.Popen(["halite.exe", "-q", "-d", "{} {}".format(size, size)] + runCommands, stdout=subprocess.PIPE)
+        #print(os.listdir())
+        proc = subprocess.Popen(["./halite", "-q", "-d", "{} {}".format(size, size)] + runCommands, stdout=subprocess.PIPE)
         for line in proc.stdout:
             lines.append(line.decode("utf-8").rstrip())
 

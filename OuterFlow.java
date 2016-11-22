@@ -1,10 +1,10 @@
 
 
-
+import java.awt.*;
 import java.util.ArrayList;
 
 
-public class SmartFlow {
+public class OuterFlow {
 
     static int width;
     static int height;
@@ -12,25 +12,9 @@ public class SmartFlow {
     static int myID;
     static GameMap gameMap;
 
-    static double[][] fGrid;
+    static double[][] pGrid;
     static boolean[][] eGrid;
-    static int[][] nGrid;
-    static int[][] dGrid;
     static boolean largeMove = false;
- 
-
-    /** CONSTANTS */
-
-    static final int blurDis = 1;
-    static final double minFlow = .005;
-    static final double enemyMult = 3;
-    static final int waitNTurns = 3;
-    static final int blurPasses = 2;
-    static final double strengthWeight = 1/44;
-
-
-
-    /***/
 
     public static void main(String[] args) throws java.io.IOException {
         InitPackage iPackage = Networking.getInit();
@@ -40,51 +24,44 @@ public class SmartFlow {
         height = gameMap.height;
         width = gameMap.width;
 
-        fGrid = new double[width][height];
+        pGrid = new double[width][height];
         eGrid = new boolean[width][height];
-        nGrid = new int[width][height];
-        dGrid = new int[width][height];
 
         eMax = 1;
 
 
-        Networking.sendInit("SmartFlow");
+        Networking.sendInit("OuterFlow");
 
         while(true) {
             ArrayList<Move> moves = new ArrayList<Move>();
             double rfac = largeMove ? 2 : 1;
-            largeMove = Math.random()*rfac > .5;
+            largeMove = Math.random()*rfac > .8;
 
             gameMap = Networking.getFrame();
-            fGrid = new double[width][height];
-            nGrid = new int[width][height];
-            dGrid = new int[width][height];
+            pGrid = new double[width][height];
             for (int i = 0; i < 5; i++)
                 for(int y = 0; y < gameMap.height; y++) {
                     for(int x = 0; x < gameMap.width; x++) {
                         Site site = gameMap.getSite(new Location(x, y));
-
+                        pGrid[x][y] = smoothCell(x, y, 1);
                         if(site.owner == myID) {
 
                             continue;
                         }
                         else {
                             if (site.owner == 0)
-                                fGrid[x][y] = site.production - (site.strength*strengthWeight);//strengthWeight;
+                                pGrid[x][y] = site.production - site.strength/255*15;
                             else
-                                fGrid[x][y] = site.production * enemyMult;
+                                pGrid[x][y] = site.production * 3;
                         }
                     }
                 }
-            for (int i = 0; i < blurPasses; i++)
-                for(int y = 0; y < gameMap.height; y++)
-                    for(int x = 0; x < gameMap.width; x++)
-                        fGrid[x][y] = smoothCell(x, y, blurDis);
+
 
             for(int y = 0; y < gameMap.height; y++) {
                 for(int x = 0; x < gameMap.width; x++) {
                     Site site = gameMap.getSite(new Location(x, y));
-                    fGrid[x][y] = smoothCell(x, y);
+                    pGrid[x][y] = smoothCell(x, y);
                     if(site.owner == myID) {
 
                         moves.add(new Move(new Location(x, y), Direction.DIRECTIONS[move(x, y)]));
@@ -148,13 +125,13 @@ public class SmartFlow {
         y = Y(y);
 
         int[][] locations = {{x, y}, {x, Y(y-1)}, {X(x+1), y}, {x, Y(y+1)}, {X(x-1), y}};
-        double maxP = fGrid[x][y];
+        double maxP = pGrid[x][y];
 
         for (int[] i : locations) {
             int tx = i[0];
             int ty = i[1];
 
-            if (fGrid[tx][ty] > maxP)
+            if (pGrid[tx][ty] > maxP)
                 return false;
         }
         return true;
@@ -171,7 +148,7 @@ public class SmartFlow {
             int tx = i[0];
             int ty = i[1];
 
-            fGrid[tx][ty] -= amt;
+            pGrid[tx][ty] -= amt;
         }
     }
 
@@ -183,7 +160,7 @@ public class SmartFlow {
             int tx = i[0];
             int ty = i[1];
 
-            total += fGrid[tx][ty];
+            total += pGrid[tx][ty];
 
         }
         total /= 5;
@@ -198,7 +175,7 @@ public class SmartFlow {
         double count = 0.0;
         for (int dy = -dis; dy <= dis; dy++) {
             for (int dx = -dis; dx <= dis; dx++) {
-                total += fGrid[X(x+dx)][Y(y+dy)];
+                total += pGrid[X(x+dx)][Y(y+dy)];
                 count++;
             }
         }
@@ -228,36 +205,28 @@ public class SmartFlow {
             int ty = locations[i][1];
             Site tsite = gameMap.getSite(new Location(tx, ty));
 
-            if (fGrid[tx][ty] > maxF) {
-                if (nGrid[tx][ty] + site.strength < 300) {
-                    maxF = fGrid[tx][ty];
-                    bestDir = i;
-                }
-                else {
-                    bestDir = dGrid[tx][ty];
-                }
+
+
+            if (pGrid[tx][ty] > maxF) {
+                maxF = pGrid[tx][ty];
+                bestDir = i;
             }
         }
 
-//        if (maxF < minFlow) {
-//            return 0;
-//        }
+        if (maxF < .05 && !largeMove) {
+            return 0;
+        }
 
 
         Site tsite = directSite(x, y, bestDir);
-        if (site.strength < site.production*waitNTurns || (tsite.strength > site.strength && tsite.owner != myID))
+        if (site.strength < site.production*5 || (tsite.strength > site.strength && tsite.owner != myID))
             return 0;
-
-        int[] temp = direct(x, y, bestDir);
-        nGrid[temp[0]][temp[1]] = site.strength;
-        dGrid[temp[0]][temp[1]] = bestDir;
 
         return bestDir;
 
     }
 
 }
-
 
 
 
