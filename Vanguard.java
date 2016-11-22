@@ -1,6 +1,14 @@
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
+/**
+ * Halite bot (https://halite.io)
+ * Codename: Vanguard
+ * 
+ * Greedy border search with single-pass propagation.
+ * 
+ * @author Andrew Sanetra (rurigok)
+ */
 public class Vanguard {
 	
 	public static final String BOT_NAME = "Vanguard";
@@ -19,7 +27,7 @@ public class Vanguard {
 	public static int propagations = 2;
 	
 	public static void logLine(String line) {
-		//logOut.println(line);
+		logOut.println(line);
 	}
 	
     public static void main(String[] args) throws java.io.IOException {
@@ -114,21 +122,30 @@ public class Vanguard {
     	}
     	
     	// Wrap-around x and y values if necessary
+    	x = wrapX(x);
+    	y = wrapY(y);
+    	
+    	return new Location(x, y);
+    }
+    
+    public static int wrapX(int x) {
     	if (x < 0) {
     		x += gameMap.width;
     	}
     	if (x >= gameMap.width) {
     		x -= gameMap.width;
     	}
-    	
+    	return x;
+    }
+    
+    public static int wrapY(int y) {
     	if (y < 0) {
     		y += gameMap.height;
     	}
     	if (y >= gameMap.height) {
     		y -= gameMap.height;
     	}
-    	
-    	return new Location(x, y);
+    	return y;
     }
     
     /**
@@ -166,7 +183,14 @@ public class Vanguard {
     		p = new Path(getLocationInDirection(x, y, d), d);
     		paths.add(p);
     	}
-    		
+    	
+//    	Direction d = Direction.NORTH;
+//    	for (int dy = -manhattanDistance; dy <= manhattanDistance; dy++) {
+//            for (int dx = -manhattanDistance; dx <= manhattanDistance; dx++) {
+//            	p = new Path(new Location(wrapX(x + dx), wrapY(y + dy)), Direction.NORTH);
+//            }
+//    	}
+    	
     	return paths;
     }
     
