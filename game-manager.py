@@ -41,7 +41,7 @@ def main():
     sizes = [x for x in range(20, 55, 5)]
 
     lines = list()
-    results = Counter()
+    results = {}
     for _ in range(runs):
         size = random.choice(sizes)
         proc = subprocess.Popen(["halite.exe", "-q", "-d", "{} {}".format(size, size)] + runCommands, stdout=subprocess.PIPE)
@@ -52,10 +52,15 @@ def main():
         for line in lines[nPlayers:]:
             if line:
                 playerNum, rank = line.split()
+
                 playerNum = int(playerNum)
                 rank = int(rank)
                 print("Player #{} {} came in rank #{}".format(playerNum, players[playerNum], rank))
-                results[players[playerNum]] += rank
+                player = players[playerNum]
+                if player in results:
+                    results[player] += (nPlayers - rank)/(nPlayers - 1)
+                else:
+                    results[player] = (nPlayers - rank)/(nPlayers - 1)
 
         lines = list()
 
@@ -63,12 +68,8 @@ def main():
     print(results)
     print(players)
 
-    for i in results:
-        results[i] = rank / runs
-
-    for i in range(1, nPlayers):
-        player = players[i]
-        print("Player #{} {} score: {}".format(i, player, (nPlayers - results[player]) / (nPlayers - 1)))
+    for player in results:
+        print('{}: {}'.format(player, results[player]/runs))
 
 
 
