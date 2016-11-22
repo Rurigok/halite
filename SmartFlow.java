@@ -17,7 +17,7 @@ public class SmartFlow {
     static int[][] nGrid;
     static int[][] dGrid;
     static boolean largeMove = false;
-
+ 
 
     /** CONSTANTS */
 
