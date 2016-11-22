@@ -13,10 +13,10 @@ public class Vanguard {
 	
 	public static final String BOT_NAME = "Vanguard";
 	public static final int NUM_PROPAGATIONS = 1;
-	public static final double ENEMY_VALUE_WEIGHT = 1.1;
 	public static final double VALUE_DECAY = 0.2;
 	public static final int STRENGTH_THRESHOLD = 5;
 	public static final int SEARCH_DISTANCE = 3;
+	public static final int ENEMY_STRENGTH_ADJUSTMENT = 20;
 	
 	public static GameMap gameMap;
 	public static int myID;
@@ -245,7 +245,7 @@ public class Vanguard {
     			if (targetValue > myNode.targetValue) {
     				myNode.targetValue = targetValue;
     				myNode.targetDirection = p.direction;
-    				myNode.targetNeed = targetSite.strength;
+    				myNode.targetNeed = Math.min(targetSite.strength + ENEMY_STRENGTH_ADJUSTMENT, 255);
     			}
     			
     		} else { // Allied site

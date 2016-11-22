@@ -42,13 +42,13 @@ def main():
 
     lines = list()
     results = {}
-    for _ in range(runs):
+    for i in range(runs):
         size = random.choice(sizes)
         proc = subprocess.Popen(["halite.exe", "-q", "-d", "{} {}".format(size, size)] + runCommands, stdout=subprocess.PIPE)
         for line in proc.stdout:
             lines.append(line.decode("utf-8").rstrip())
 
-        print("======================================")
+        print("============ Game {} of {} ============".format(i + 1, runs))
         for line in lines[nPlayers:]:
             if line:
                 playerNum, rank = line.split()
@@ -64,11 +64,11 @@ def main():
 
         lines = list()
 
-    print("############ FINAL STATS #############")
-    print(results)
-    print(players)
+    print("########### FINAL SCORES ############")
+    #print(results)
+    #print(players)
 
-    for player in results:
+    for player in sorted(results.keys()):
         print('{}: {}'.format(player, results[player]/runs))
 
 
