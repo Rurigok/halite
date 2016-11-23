@@ -114,6 +114,8 @@ def main():
             continue
         elif arg.isdigit():
             runs = int(arg)
+        elif arg == '-d':
+            continue
         else:
             usage("File type not supported.")
 
@@ -167,3 +169,11 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    if '-d' in sys.argv:
+        import os
+        files = os.listdir()
+
+        for f in files:
+            if f.endswith('.hlt') or f.endswith('.log'):
+                os.remove(f)
