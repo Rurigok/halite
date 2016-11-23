@@ -5,8 +5,8 @@ import random
 import subprocess
 import sys
 
-# Represents a single playerID and rank pair from a single game
-Result = namedtuple('Result', 'playerID rank')
+# Represents a single playerID and score pair from a single game
+Result = namedtuple('Result', 'playerID score')
 
 class Simulation(object):
     """Represents a single run of a game.
@@ -40,9 +40,9 @@ class Simulation(object):
         for line in lines[self.numPlayers + 1:]:
             if line:
                 playerID, rank = [int(x) for x in line.split()]
-                rank = 100 - 100 / (self.numPlayers - 1) * (rank - 1)
+                score = 100 - 100 / (self.numPlayers - 1) * (rank - 1)
                 # Collect results for each player
-                results.append(Result(playerID, rank))
+                results.append(Result(playerID, score))
         return results
 
 class SimulationWorker(mp.Process):
@@ -53,10 +53,12 @@ class SimulationWorker(mp.Process):
     resultQueue.
     """
 
-    def __init__(self, simQueue, resultQueue):
+    def __init__(self, simQueue, resultQueue, outputLock, players):
         mp.Process.__init__(self)
         self.simQueue = simQueue
         self.resultQueue = resultQueue
+        self.outputLock = outputLock
+        self.players = players
 
     def run(self):
         # Pull and run simulations until we encounter a poison pill (None)
@@ -69,15 +71,23 @@ class SimulationWorker(mp.Process):
             self.simQueue.task_done()
             for result in results:
                 self.resultQueue.put(result)
+            # Acquire a lock so our messages to stdout don't get jumbled and
+            # print the rankings of the now-completed simulation
+            with self.outputLock:
+                print("=========================================")
+                i = 1
+                for result in sorted(results, key=lambda r: r.score, reverse=True):
+                    print("{} got rank #{}".format(self.players[result.playerID].playerName, i))
+                    i += 1
 
 class Player(object):
 
     def __init__(self, playerName):
         self.playerName = playerName
-        self.totalRank = 0
+        self.totalScore = 0
 
     def __str__(self):
-        return "{} has a total rank of {}".format(self.playerName, self.totalRank)
+        return "{} has a total rank of {}".format(self.playerName, self.totalScore)
 
 def usage(message):
     print(message)
@@ -121,10 +131,11 @@ def main():
     simQueue = mp.JoinableQueue()
     resultQueue = mp.Queue()
     jobs = []
+    outputLock = mp.Lock()
 
     # Create and start simulation worker processes
     numWorkers = mp.cpu_count()
-    workers = [ SimulationWorker(simQueue, resultQueue)
+    workers = [ SimulationWorker(simQueue, resultQueue, outputLock, players)
                 for i in range(numWorkers) ]
     for w in workers:
         w.start()
@@ -145,13 +156,13 @@ def main():
     # Process results
     while not resultQueue.empty():
         result = resultQueue.get()
-        players[result.playerID].totalRank += result.rank
+        players[result.playerID].totalScore += result.score
 
-    print("=================================================")
-    print("########## Final Scores (0-100 scale) ###########")
+    print("=========================================")
+    print("###### Final Scores (0-100 scale) #######")
 
     for player in players.values():
-        score = int(player.totalRank / (100 * runs) * 100)
+        score = int(player.totalScore / (100 * runs) * 100)
         print("{}: {}".format(player.playerName, score))
 
 if __name__ == '__main__':
