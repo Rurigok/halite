@@ -7,7 +7,7 @@ import sys
 
 # Represents a single playerID and score pair from a single game
 Result = namedtuple('Result', 'playerID score')
-
+cores = mp.cpu_count()
 class Simulation(object):
     """Represents a single run of a game.
 
@@ -101,7 +101,7 @@ def main():
     playerID = 1
 
     # Parse # of runs, compile any files and build run command + player list.
-    for arg in sys.argv[1:]:
+    for i, arg in enumerate(sys.argv[1:]):
         if arg.endswith(".java"):
             subprocess.call(["javac", arg])
             runCommands.append("java " + arg[:-5])
@@ -116,6 +116,9 @@ def main():
             runs = int(arg)
         elif arg == '-d':
             continue
+
+
+
         else:
             usage("File type not supported.")
 
@@ -127,7 +130,7 @@ def main():
     print("Compilation finished. Starting simulation(s)...")
 
     # Generate candidate board sizes (only square boards are generated)
-    sizes = [x for x in range(20, 55, 5)]
+    sizes = [x for x in range(45, 50, 5)]
 
     # Create input/output queues
     simQueue = mp.JoinableQueue()

@@ -1,8 +1,3 @@
-
-
-
-
-
 import java.awt.*;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,7 +5,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 
 
-public class sf2 {
+public class MyBot41_38 {
 
     static int width;
     static int height;
@@ -22,8 +17,6 @@ public class sf2 {
     static boolean[][] eGrid;
     static int[][] nGrid;
     static int[][] dGrid;
-    static int[][] needGrid;
-    static int[][] turnsGrid;
     static boolean largeMove = false;
     static FileWriter out;
     static ArrayList<double[][]> history = new ArrayList<double[][]>();
@@ -75,8 +68,6 @@ public class sf2 {
         eGrid = new boolean[width][height];
         nGrid = new int[width][height];
         dGrid = new int[width][height];
-        needGrid = new int[width][height];
-        turnsGrid = new int[width][height];
 
         //out = new FileWriter("out.json");
 
@@ -92,7 +83,7 @@ public class sf2 {
 
 
 
-        Networking.sendInit("sf2");
+        Networking.sendInit("sf2mb");
 
         while(true) {
             ArrayList<Move> moves = new ArrayList<Move>();
@@ -103,8 +94,6 @@ public class sf2 {
             pGrid = new double[width][height];
             nGrid = new int[width][height];
             dGrid = new int[width][height];
-            needGrid = new int[width][height];
-            turnsGrid = new int[width][height];
 
             for(int y = 0; y < gameMap.height; y++) {
                 for(int x = 0; x < gameMap.width; x++) {
@@ -116,18 +105,14 @@ public class sf2 {
                     }
                     else {
                         if (site.owner == 0) {
+                            pGrid[x][y] = site.production / 15.0 * productionWeight + (Math.pow(1 - (site.strength / 255.0), strengthPower));
 
-                            pGrid[x][y] = site.production / 15.0 * productionWeight + (Math.pow(1-(site.strength / 255.0), strengthPower));
-                            if (site.production == 0)
-                                pGrid[x][y] = 0;
                         }
                         else
                             pGrid[x][y] = site.production/15.0 * enemyMult;
                     }
                 }
             }
-
-
             for (int i = 0; i < blurPasses; i++)
                 for(int y = 0; y < gameMap.height; y++)
                     for(int x = 0; x < gameMap.width; x++)
@@ -163,33 +148,6 @@ public class sf2 {
             }
             Networking.sendFrame(moves);
         }
-    }
-
-    public ArrayList<int[]> getEdges() {
-
-        ArrayList<int[]> out = new ArrayList<int[]>();
-        for(int y = 0; y < gameMap.height; y++) {
-            for (int x = 0; x < gameMap.width; x++) {
-                int[] point = {x, y};
-                if (isEdge(x, y)) out.add(point);
-            }
-        }
-        return out;
-    }
-
-    public static boolean isEdge(int x, int y) {
-        int[][] locs = {{x, y}, {x, Y(y-1)}, {X(x+1), y}, {x, Y(y+1)}, {X(x-1), y}};
-
-        for (int i = 1; i < locs.length; i++) {
-            int tx = locs[i][0];
-            int ty = locs[i][1];
-
-            Site site = gameMap.getSite(new Location(tx, ty));
-            if (site.owner != myID) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static boolean enemyAttackableEdge(int x, int y) {
@@ -433,13 +391,6 @@ public class sf2 {
         if (site.strength < site.production*waitNTurns || (tsite.strength+1 > site.strength && tsite.owner != myID)) {
             nGrid[x][y] = site.strength;
             dGrid[x][y] = 0;
-            if (tsite.owner != myID) {
-                int diff = tsite.strength + 1 - (site.strength+site.production);
-                needGrid[x][y] = diff;
-                if (site.production != 0)
-                    turnsGrid[x][y] = diff / site.production;
-                else turnsGrid[x][y] = 10000;
-            }
             return 0;
         }
 
@@ -449,18 +400,6 @@ public class sf2 {
         nGrid[temp[0]][temp[1]] = site.strength;
         dGrid[temp[0]][temp[1]] = bestDir;
 
-        if (needGrid[tx][ty] > site.strength && turnsGrid[tx][ty] >= (needGrid[tx][ty]+1)/(site.production+1)) {
-            int need = needGrid[tx][ty] - (site.strength+site.production);
-            int turns;
-            if (site.production != 0)
-                turns = Math.min(need/site.production, turnsGrid[tx][ty]);
-            else turns = 10000;
-            needGrid[x][y] = need;
-            turnsGrid[x][y] = turns;
-            nGrid[x][y] = site.strength;
-            dGrid[x][y] = 0;
-            return 0;
-        }
 
 
         return bestDir;
