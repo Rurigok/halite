@@ -24,6 +24,7 @@ public class sf2 {
     static int[][] dGrid;
     static int[][] needGrid;
     static int[][] turnsGrid;
+    static boolean[][] foundGrid;
     static boolean largeMove = false;
     static FileWriter out;
     static ArrayList<double[][]> history = new ArrayList<double[][]>();
@@ -77,6 +78,7 @@ public class sf2 {
         dGrid = new int[width][height];
         needGrid = new int[width][height];
         turnsGrid = new int[width][height];
+        foundGrid = new boolean[width][height];
 
         //out = new FileWriter("out.json");
 
@@ -92,7 +94,7 @@ public class sf2 {
 
 
 
-        Networking.sendInit("sf2");
+        Networking.sendInit("RStayFlow");
 
         while(true) {
             ArrayList<Move> moves = new ArrayList<Move>();
@@ -105,6 +107,7 @@ public class sf2 {
             dGrid = new int[width][height];
             needGrid = new int[width][height];
             turnsGrid = new int[width][height];
+            foundGrid = new boolean[width][height];
 
             for(int y = 0; y < gameMap.height; y++) {
                 for(int x = 0; x < gameMap.width; x++) {
@@ -392,6 +395,85 @@ public class sf2 {
 //        return total/count;
 //    }
 
+    public static int move(int x, int y, int depth) {
+        Site site = gameMap.getSite(new Location(x, y));
+
+        int[][] locations = {{x, y}, {x, Y(y-1)}, {X(x+1), y}, {x, Y(y+1)}, {X(x-1), y}};
+
+        double maxP = 0;
+        int bestDir = 0;
+        boolean easy = false;
+
+        double maxF = 0;
+
+        for (int i = 1; i < locations.length; i++) {
+            int tx = locations[i][0];
+            int ty = locations[i][1];
+
+            Site tsite = gameMap.getSite(new Location(tx, ty));
+
+            if (pGrid[tx][ty] > maxF) {
+                if (nGrid[tx][ty] + site.strength < collideThresh) {
+                    maxF = pGrid[tx][ty];
+                    bestDir = i;
+                }
+                else {
+                    bestDir = dGrid[tx][ty];
+                    //bestDir = 0;
+                }
+            }
+        }
+
+//        if (maxF < minFlow && ! largeMove) {
+//            return 0;
+//        }
+
+
+        Site tsite = directSite(x, y, bestDir);
+        if (site.strength < site.production*waitNTurns || (tsite.strength+1 > site.strength && tsite.owner != myID)) {
+            nGrid[x][y] = site.strength;
+            dGrid[x][y] = 0;
+            if (tsite.owner != myID) {
+                int diff = tsite.strength - (site.strength+site.production);
+                needGrid[x][y] = diff;
+                if (site.production != 0)
+                    turnsGrid[x][y] = diff / site.production;
+                else turnsGrid[x][y] = 10000;
+                foundGrid[x][y] = true;
+            }
+            foundGrid[x][y] = true;
+            return 0;
+        }
+
+        int[] temp = direct(x, y, bestDir);
+        int tx = temp[0];
+        int ty = temp[1];
+        nGrid[temp[0]][temp[1]] = site.strength;
+        dGrid[temp[0]][temp[1]] = bestDir;
+
+        if (foundGrid[tx][ty] == false && tsite.owner == myID) {
+            if (depth > 20) return -1;
+            move(tx, ty, depth+1);
+        }
+
+        if (needGrid[tx][ty] > site.strength && turnsGrid[tx][ty] >= (needGrid[tx][ty]+1)/(site.production+1)) {
+            int need = needGrid[tx][ty] - (site.strength+site.production);
+            int turns;
+            if (site.production != 0)
+                turns = Math.min(need/site.production, turnsGrid[tx][ty]-1);
+            else turns = 10000;
+            needGrid[x][y] = need;
+            turnsGrid[x][y] = turns;
+            nGrid[x][y] = site.strength;
+            dGrid[x][y] = 0;
+            foundGrid[x][y] = true;
+            return 0;
+        }
+
+
+        return bestDir;
+
+    }
 
 
 
@@ -439,7 +521,9 @@ public class sf2 {
                 if (site.production != 0)
                     turnsGrid[x][y] = diff / site.production;
                 else turnsGrid[x][y] = 10000;
+                foundGrid[x][y] = true;
             }
+            foundGrid[x][y] = true;
             return 0;
         }
 
@@ -448,6 +532,10 @@ public class sf2 {
         int ty = temp[1];
         nGrid[temp[0]][temp[1]] = site.strength;
         dGrid[temp[0]][temp[1]] = bestDir;
+
+        if (foundGrid[tx][ty] == false && tsite.owner == myID) {
+            move(tx, ty, 0);
+        }
 
         if (needGrid[tx][ty] > site.strength && turnsGrid[tx][ty] >= (needGrid[tx][ty]+1)/(site.production+1)) {
             int need = needGrid[tx][ty] - (site.strength+site.production);
@@ -459,6 +547,7 @@ public class sf2 {
             turnsGrid[x][y] = turns;
             nGrid[x][y] = site.strength;
             dGrid[x][y] = 0;
+            foundGrid[x][y] = true;
             return 0;
         }
 
