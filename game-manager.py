@@ -101,7 +101,7 @@ def main():
     playerID = 1
 
     # Parse # of runs, compile any files and build run command + player list.
-    for arg in enumerate(sys.argv[1:]):
+    for arg in sys.argv[1:]:
         if arg.endswith(".java"):
             subprocess.call(["javac", arg])
             runCommands.append("java " + arg[:-5])
