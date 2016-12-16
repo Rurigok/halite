@@ -101,26 +101,24 @@ def main():
     playerID = 1
 
     # Parse # of runs, compile any files and build run command + player list.
-    for i, arg in enumerate(sys.argv[1:]):
+    for arg in enumerate(sys.argv[1:]):
         if arg.endswith(".java"):
             subprocess.call(["javac", arg])
             runCommands.append("java " + arg[:-5])
             players[playerID] = Player(arg[:-5])
             playerID += 1
         elif arg.endswith(".py"):
-            runCommands.append("python " + arg)
+            runCommands.append("python3 " + arg)
             players[playerID] = Player(arg[:-2])
             playerID += 1
-            continue
         elif arg.isdigit():
             runs = int(arg)
         elif arg == '-d':
             continue
-
-
-
         else:
-            usage("File type not supported.")
+            runCommands.append("./" + arg)
+            players[playerID] = Player(arg)
+            playerID += 1
 
     numPlayers = playerID - 1
 
@@ -135,13 +133,12 @@ def main():
     # Create input/output queues
     simQueue = mp.JoinableQueue()
     resultQueue = mp.Queue()
-    jobs = []
     outputLock = mp.Lock()
 
     # Create and start simulation worker processes
     numWorkers = mp.cpu_count()
-    workers = [ SimulationWorker(simQueue, resultQueue, outputLock, players)
-                for i in range(numWorkers) ]
+    workers = [SimulationWorker(simQueue, resultQueue, outputLock, players)
+               for i in range(numWorkers)]
     for w in workers:
         w.start()
 
